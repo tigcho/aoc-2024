@@ -10,22 +10,36 @@ def find_antinodes(grid):
     grid = [list(row) for row in grid.strip().split("\n")]
     width, height = len(grid[0]), len(grid)
     antennas = parse_grid(grid)
+    
+    # Group antennas by frequency
+    antenna_pos = {}
+    for x, y, freq in antennas:
+        if freq not in antenna_pos:
+            antenna_pos[freq] = []
+        antenna_pos[freq].append(complex(x, y))
+    
     antinodes = set()
-
-    for i, (x1, y1, freq1) in enumerate(antennas):
-        for x2, y2, freq2 in antennas[i + 1:]:
-            if freq1 != freq2:
-                continue
-
-            dx, dy = x2 - x1, y2 - y1
-            x3, y3 = x2 + dx, y2 + dy
-            x4, y4 = x1 - dx, y1 - dy
-
-            if 0 <= x3 < width and 0 <= y3 < height:
-                antinodes.add((x3, y3))
-            if 0 <= x4 < width and 0 <= y4 < height:
-                antinodes.add((x4, y4))
-
+    
+    for freq, pos_list in antenna_pos.items():
+        for i, pos in enumerate(pos_list[:-1]):
+            for pair_pos in pos_list[i+1:]:
+                diff = pos - pair_pos
+                
+                # Check points in both directions from first antenna
+                curr_pos = pos + diff
+                while 0 <= curr_pos.real < width and 0 <= curr_pos.imag < height:
+                    antinodes.add((int(curr_pos.real), int(curr_pos.imag)))
+                    curr_pos += diff
+                
+                curr_pos = pair_pos - diff
+                while 0 <= curr_pos.real < width and 0 <= curr_pos.imag < height:
+                    antinodes.add((int(curr_pos.real), int(curr_pos.imag)))
+                    curr_pos -= diff
+        
+        if len(pos_list) > 1:
+            for pos in pos_list:
+                antinodes.add((int(pos.real), int(pos.imag)))
+    
     return len(antinodes)
 
 with open("input", "r") as file:
