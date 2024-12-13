@@ -15,8 +15,8 @@ def parse_input(filename):
             bx = int(b.split('X+')[1].split(',')[0])
             by = int(b.split('Y+')[1])
             
-            px = int(prize.split('X=')[1].split(',')[0])
-            py = int(prize.split('Y=')[1])
+            px = int(prize.split('X=')[1].split(',')[0]) + 10000000000000 
+            py = int(prize.split('Y=')[1]) + 10000000000000 
             
             machines.append({
                 'A': (ax, ay),
@@ -28,15 +28,20 @@ def parse_input(filename):
     
     return machines
 
-
-def win_prize(a_x, a_y, b_x, b_y, p_x, p_y, max_presses=100):
-    for a in range(max_presses + 1):
-        for b in range(max_presses + 1):
-            x = a * a_x + b * b_x
-            y = a * a_y + b * b_y
-            if x == p_x and y == p_y:
-                return True, a, b
-    return False, None, None
+def win_prize(a_x, a_y, b_x, b_y, p_x, p_y):
+    # Calculate determinant
+    det = a_x * b_y - a_y * b_x
+    
+    if det == 0:
+        return False, None, None
+        
+    a = (p_x * b_y - p_y * b_x) // det
+    b = (a_x * p_y - a_y * p_x) // det
+    
+    if (a * a_x + b * b_x != p_x) or (a * a_y + b * b_y != p_y) or a < 0 or b < 0:
+        return False, None, None
+        
+    return True, a, b
 
 def calc_tokens(a_presses, b_presses):
     return a_presses * 3 + b_presses
