@@ -1,3 +1,6 @@
+from pulp import *
+import re
+
 def parse_input(filename):
     machines = []
     
@@ -15,8 +18,8 @@ def parse_input(filename):
             bx = int(b.split('X+')[1].split(',')[0])
             by = int(b.split('Y+')[1])
             
-            px = int(prize.split('X=')[1].split(',')[0]) + 10000000000000 
-            py = int(prize.split('Y=')[1]) + 10000000000000 
+            px = int(prize.split('X=')[1].split(',')[0])
+            py = int(prize.split('Y=')[1])
             
             machines.append({
                 'A': (ax, ay),
@@ -28,20 +31,26 @@ def parse_input(filename):
     
     return machines
 
-def win_prize(a_x, a_y, b_x, b_y, p_x, p_y):
-    # Calculate determinant
-    det = a_x * b_y - a_y * b_x
+def solve_with_pulp(machine):
+    a_x, a_y = machine['A']
+    b_x, b_y = machine['B']
+    p_x, p_y = machine['Prize']
     
-    if det == 0:
-        return False, None, None
-        
-    a = (p_x * b_y - p_y * b_x) // det
-    b = (a_x * p_y - a_y * p_x) // det
+    prob = LpProblem("Machine_Puzzle", LpMinimize)
     
-    if (a * a_x + b * b_x != p_x) or (a * a_y + b * b_y != p_y) or a < 0 or b < 0:
-        return False, None, None
-        
-    return True, a, b
+    a_presses = LpVariable("button_a", 0, None, LpInteger)
+    b_presses = LpVariable("button_b", 0, None, LpInteger)
+    
+    prob += 3 * a_presses + b_presses
+    
+    prob += a_x * a_presses + b_x * b_presses == p_x
+    prob += a_y * a_presses + b_y * b_presses == p_y
+    
+    prob.solve(PULP_CBC_CMD(msg=False))
+    
+    if LpStatus[prob.status] == 'Optimal':
+        return True, int(value(a_presses)), int(value(b_presses))
+    return False, None, None
 
 def calc_tokens(a_presses, b_presses):
     return a_presses * 3 + b_presses
@@ -49,19 +58,15 @@ def calc_tokens(a_presses, b_presses):
 def solve(machines):
     total_tokens = 0
     prizes = 0
-
+    
     for m in machines:
-        a_x, a_y = m['A']
-        b_x, b_y = m['B']
-        p_x, p_y = m['Prize']
-
-        win, a_presses, b_presses = win_prize(a_x, a_y, b_x, b_y, p_x, p_y)
-
+        win, a_presses, b_presses = solve_with_pulp(m)
+        
         if win:
             prizes += 1
             tokens = calc_tokens(a_presses, b_presses)
             total_tokens += tokens
-
+            
     return prizes, total_tokens
 
 machines = parse_input('input')
