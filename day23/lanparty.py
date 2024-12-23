@@ -1,3 +1,5 @@
+from itertools import combinations
+
 def solve(data):
     graph = {}
     for line in data.strip().split('\n'):
@@ -5,21 +7,26 @@ def solve(data):
         graph.setdefault(a, set()).add(b)
         graph.setdefault(b, set()).add(a)
     
-    nodes = list(graph.keys())
-    count = 0
+    max_clique = set()
     
-    for i in range(len(nodes)):
-        for j in range(i + 1, len(nodes)):
-            if nodes[j] in graph[nodes[i]]:  # if connected
-                for k in range(j + 1, len(nodes)):
-                    if (nodes[k] in graph[nodes[i]] and 
-                        nodes[k] in graph[nodes[j]] and
-                        any(n.startswith('t') for n in (nodes[i], nodes[j], nodes[k]))):
-                        count += 1
+    def find_clique(candidates, current_clique):
+        nonlocal max_clique
+        if len(current_clique) > len(max_clique):
+            max_clique = current_clique.copy()
+        
+        potential = {n for n in candidates 
+                    if all(n in graph[v] for v in current_clique)}
+        
+        for node in potential:
+            new_candidates = {n for n in candidates if n > node}  
+            find_clique(new_candidates, current_clique | {node})
     
-    return count
+    nodes = sorted(graph.keys())
+    find_clique(set(nodes), set())
+    
+    return ','.join(sorted(max_clique))
 
 with open("input", 'r') as f:
     test_input = f.read()
 
-print(solve(test_input))  
+print(solve(test_input))
